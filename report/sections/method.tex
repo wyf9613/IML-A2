@@ -1,0 +1,199 @@
+\section{Method}
+\label{sec:method}
+
+\subsection{Dataset}
+\label{sec:dataset}
+
+We use the \textbf{UK Used Car Dataset} \cite{usedcardataset2021}, a publicly available collection of used vehicle listings scraped from a major UK online automotive marketplace.
+The raw dataset comprises 108{,}540 listings distributed across 11 CSV files, one per manufacturer: Audi, BMW, Ford (two subsets), Mercedes (two subsets), Hyundai, Skoda, Toyota, Vauxhall, and Volkswagen.
+All files share a common nine-column schema: \texttt{model}, \texttt{year}, \texttt{price} (GBP), \texttt{transmission}, \texttt{mileage}, \texttt{fuelType}, \texttt{tax} (annual road tax in GBP), \texttt{mpg} (miles per gallon), and \texttt{engineSize} (litres).
+Two additional ``unclean'' files (Ford Focus, Mercedes C-Class) are included as raw scrape outputs with malformed price strings and split mileage columns; these are used to illustrate real-world data quality challenges but are not included in the main training corpus.
+
+\paragraph{Properties.}
+Table~\ref{tab:dataset_stats} summarises the key properties of the combined dataset after loading.
+The target variable \texttt{price} is continuous and exhibits severe right-skew (skewness $= 2.29$), with a median of £14{,}698 and values ranging from £450 to £159{,}999.
+Two features—\texttt{tax} (13.1\% missing) and \texttt{mpg} (8.6\% missing)—contain substantial proportions of missing values arising from incomplete scraping.
+The dataset contains 9 brands after merging the two Ford and two Mercedes subsets, and 195 distinct car models.
+Linear separability between price strata is low given the continuous target, but a moderate negative correlation with \texttt{mileage} ($r = -0.47$) and positive correlation with \texttt{year} ($r = 0.52$) provide a clear signal for regression.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Property} & \textbf{Value} \\
+\midrule
+Total listings (raw)          & 108{,}540 \\
+Listings after cleaning       & $\sim$100{,}000 \\
+Number of brands              & 9 \\
+Number of models              & 195 \\
+Numerical features            & 6 (\texttt{year}, \texttt{price}, \texttt{mileage}, \texttt{tax}, \texttt{mpg}, \texttt{engineSize}) \\
+Categorical features          & 3 (\texttt{model}, \texttt{transmission}, \texttt{fuelType}) \\
+Target variable               & \texttt{price} (continuous, GBP) \\
+Target skewness (raw)         & 2.29 \\
+Target skewness (log)         & $-$0.13 \\
+Missing values (\texttt{tax}) & 13.1\% \\
+Missing values (\texttt{mpg}) & 8.6\% \\
+\bottomrule
+\end{tabular}
+\caption{Summary statistics of the UK Used Car Dataset before and after cleaning. Listing counts are approximate post-cleaning due to duplicate and outlier removal.}
+\label{tab:dataset_stats}
+\end{table}
+
+\subsection{Data Preprocessing}
+\label{sec:preprocessing}
+
+All preprocessing is implemented in Python using \texttt{pandas} and \texttt{scikit-learn}, and is fully reproducible via Notebook~01 in the accompanying code repository.
+The pipeline proceeds through five stages.
+
+\paragraph{Stage 1: Schema Standardisation.}
+Each per-brand CSV is loaded and filtered to the nine standard columns, discarding any extraneous columns (e.g.\ the \texttt{tax(£)} column present in the Hyundai file due to a scraping inconsistency).
+All files are concatenated into a single DataFrame and a \texttt{brand} column is appended.
+
+\paragraph{Stage 2: Validity Filtering.}
+Four categories of physically implausible values are identified and treated as missing rather than deleted, preserving sample size:
+\begin{itemize}
+  \item \texttt{engineSize} $= 0$: no internal combustion vehicle has zero displacement; likely a data-entry error.
+  \item \texttt{mileage} $= 0$: used car listings with zero recorded mileage are implausible placeholders.
+  \item \texttt{price} $< £100$: below any realistic transaction threshold.
+  \item \texttt{year} $\notin [1990, 2023]$: values of 1970 and 2060 represent obvious entry errors.
+\end{itemize}
+
+\paragraph{Stage 3: Duplicate Removal.}
+Exact duplicate rows (identical across all nine columns) are removed.
+
+\paragraph{Stage 4: Outlier Removal.}
+We apply the IQR method with a conservative factor of $3\times$ to \texttt{price}, \texttt{mileage}, and \texttt{tax}.
+A row is removed if its value falls below $Q_1 - 3 \cdot \mathrm{IQR}$ or above $Q_3 + 3 \cdot \mathrm{IQR}$.
+This factor retains genuine high-value luxury cars and high-mileage fleet vehicles while discarding clear data errors.
+The resulting price bounds are approximately £[1{,}229, 46{,}440].
+
+\paragraph{Stage 5: Category Consolidation.}
+Five fuel type labels and four transmission labels in the raw data include rare entries (e.g.\ \textit{Other}, \textit{Electric} for a small fraction of the dataset).
+We retain only \{\textit{Petrol}, \textit{Diesel}, \textit{Hybrid}, \textit{Electric}\} and \{\textit{Manual}, \textit{Automatic}, \textit{Semi-Auto}\}, mapping all other values to \texttt{NaN} for subsequent imputation.
+
+\subsection{Missing Value Handling}
+\label{sec:imputation}
+
+Table~\ref{tab:missing} shows the missing value profile after validity filtering.
+We use \textbf{group-median imputation} for all numerical columns and \textbf{within-brand mode imputation} for categorical columns.
+Group-median imputation is preferred over global median because feature distributions are strongly stratified by brand and fuel type: for example, diesel engines have systematically higher displacement and different MPG profiles than petrol engines.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{llr}
+\toprule
+\textbf{Feature} & \textbf{Imputation Strategy} & \textbf{Missing \%} \\
+\midrule
+\texttt{tax}          & Median within (\texttt{year}, engine bin)    & $\sim$13\% \\
+\texttt{mpg}          & Median within (\texttt{fuelType}, engine bin) & $\sim$9\%  \\
+\texttt{engineSize}   & Median within (\texttt{brand}, \texttt{fuelType}) & $<$1\%  \\
+\texttt{mileage}      & Median within (\texttt{year}, \texttt{brand})     & $<$1\%  \\
+\texttt{fuelType}     & Mode within \texttt{brand}                    & $<$1\%  \\
+\texttt{transmission} & Mode within \texttt{brand}                    & $<$1\%  \\
+\bottomrule
+\end{tabular}
+\caption{Missing value rates (post-cleaning) and imputation strategies. Engine bin refers to a coarse discretisation of \texttt{engineSize} into five intervals.}
+\label{tab:missing}
+\end{table}
+
+\subsection{Feature Engineering}
+\label{sec:feature_engineering}
+
+Beyond the nine raw features, we construct four derived features motivated by domain knowledge of vehicle depreciation:
+
+\begin{itemize}
+  \item \textbf{\texttt{car\_age}} $= 2024 - \texttt{year}$: vehicle depreciation is primarily a function of age rather than the registration year in isolation.
+  \item \textbf{\texttt{mileage\_per\_year}} $= \texttt{mileage} / (\texttt{car\_age} + 1)$: normalises mileage by age, distinguishing a high-mileage new car from a low-mileage old one. A car driven 20{,}000 miles in one year signals different usage patterns than one driven 100{,}000 miles over ten years.
+  \item \textbf{\texttt{is\_luxury}} $\in \{0, 1\}$: binary indicator for premium brands (Audi, BMW, Mercedes), which command a price premium independent of other features.
+  \item \textbf{\texttt{log\_price}} $= \log(1 + \texttt{price})$: log-transformation of the target to reduce right-skew (skewness from 2.29 to $-$0.13). All models are trained to predict \texttt{log\_price}; results are exponentiated for interpretation.
+\end{itemize}
+
+\subsection{Categorical Encoding}
+\label{sec:encoding}
+
+We apply three encoding strategies tailored to the cardinality and ordinality of each categorical feature:
+
+\begin{itemize}
+  \item \textbf{Label encoding} for \texttt{transmission} (3 levels): Manual $\to 0$, Semi-Auto $\to 1$, Automatic $\to 2$. The ordering reflects increasing automation level, making this a reasonable ordinal treatment.
+  \item \textbf{One-hot encoding (OHE)} for \texttt{fuelType} (4 levels): avoids imposing a false ordinal relationship. This produces four binary indicator columns (\texttt{fuel\_Petrol}, \texttt{fuel\_Diesel}, \texttt{fuel\_Hybrid}, \texttt{fuel\_Electric}).
+  \item \textbf{Target encoding} for \texttt{brand} and \texttt{model}: each category is replaced by the mean \texttt{log\_price} of that group. Target encoding is preferred over OHE for these high-cardinality features (9 brands, 195 models) because it produces a compact, informative representation without the curse of dimensionality. In the modelling notebooks, target encoding statistics are computed on the training fold only to prevent label leakage.
+\end{itemize}
+
+\subsection{Feature Scaling}
+\label{sec:scaling}
+
+The final modelling feature set comprises 14 features (Table~\ref{tab:features}).
+We prepare two scaled versions for experiments related to RQ3:
+\begin{itemize}
+  \item \textbf{StandardScaler}: zero mean, unit variance. Standard choice for gradient-based models and regularised linear models.
+  \item \textbf{MinMaxScaler}: maps each feature to $[0, 1]$. Used to study the effect of bounded vs.\ standardised inputs on KNN and neural network performance.
+\end{itemize}
+Tree-based models (Random Forest) are scale-invariant and always trained on unscaled features.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Feature} & \textbf{Type} & \textbf{Source} \\
+\midrule
+\texttt{car\_age}          & Numerical  & Engineered \\
+\texttt{mileage}           & Numerical  & Raw \\
+\texttt{mileage\_per\_year}& Numerical  & Engineered \\
+\texttt{tax}               & Numerical  & Raw \\
+\texttt{mpg}               & Numerical  & Raw \\
+\texttt{engineSize}        & Numerical  & Raw \\
+\texttt{transmission\_enc} & Ordinal    & Label-encoded \\
+\texttt{is\_luxury}        & Binary     & Engineered \\
+\texttt{brand\_mean\_price}& Numerical  & Target-encoded \\
+\texttt{model\_mean\_price}& Numerical  & Target-encoded \\
+\texttt{fuel\_Diesel}      & Binary     & OHE \\
+\texttt{fuel\_Electric}    & Binary     & OHE \\
+\texttt{fuel\_Hybrid}      & Binary     & OHE \\
+\texttt{fuel\_Petrol}      & Binary     & OHE \\
+\midrule
+\textbf{Target}: \texttt{log\_price} & Numerical & Engineered \\
+\bottomrule
+\end{tabular}
+\caption{Final modelling feature set (14 features) used as input to all models.}
+\label{tab:features}
+\end{table}
+
+\subsection{Validation Setup}
+\label{sec:validation}
+
+To enable fair comparison across all models and preprocessing variants, we adopt a unified validation protocol.
+The dataset is split into a \textbf{training set} (80\%, stratified by brand) and a held-out \textbf{test set} (20\%) using a fixed random seed (42).
+The test set is used only for final evaluation and is never seen during model selection or hyperparameter tuning.
+
+Hyperparameter tuning is conducted using \textbf{5-fold cross-validation} on the training set.
+The same folds are used for all models to ensure that observed performance differences are not attributable to fold assignment.
+Target encoding statistics (for \texttt{brand} and \texttt{model}) are recomputed within each fold to prevent label leakage.
+
+\subsection{Models and Hyperparameters}
+\label{sec:models}
+
+% TODO (Xinkai / Zhenyu): fill in model descriptions and hyperparameter ranges
+We evaluate five models covering the bias--variance spectrum from high-bias/low-variance to low-bias/high-variance:
+
+\begin{enumerate}
+  \item \textbf{Ridge Regression} — linear model with L2 regularisation; $\alpha \in \{0.01, 0.1, 1, 10, 100\}$.
+  \item \textbf{K-Nearest Neighbours (KNN)} — instance-based; $k \in \{3, 5, 10, 20, 50\}$; distance weighting.
+  \item \textbf{Support Vector Regression (SVR)} — kernel SVM; RBF kernel; $C \in \{0.1, 1, 10\}$, $\varepsilon \in \{0.01, 0.1\}$.
+  \item \textbf{Random Forest} — ensemble of 100--500 decision trees; \texttt{max\_depth} $\in \{10, 20, \texttt{None}\}$; \texttt{min\_samples\_leaf} $\in \{1, 5\}$.
+  \item \textbf{Multi-Layer Perceptron (MLP)} — two hidden layers; width $\in \{64, 128\}$; dropout $\in \{0.0, 0.2\}$; Adam optimiser; early stopping.
+\end{enumerate}
+
+\subsection{Evaluation Metrics}
+\label{sec:metrics}
+
+All models are evaluated on the same three metrics, computed on original-scale predictions (after exponentiating \texttt{log\_price} predictions):
+\begin{itemize}
+  \item \textbf{RMSE} (Root Mean Squared Error): penalises large errors more heavily; primary metric.
+  \item \textbf{MAE} (Mean Absolute Error): interpretable as average absolute price deviation in GBP.
+  \item \textbf{R²} (Coefficient of Determination): proportion of price variance explained by the model.
+\end{itemize}
+
+For preprocessing comparisons (RQ3), we additionally report the cross-validation RMSE and its standard deviation to assess stability across folds.

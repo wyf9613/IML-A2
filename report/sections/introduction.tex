@@ -1,0 +1,23 @@
+\section{Introduction}
+\label{sec:intro}
+
+The second-hand car market is one of the largest consumer goods markets globally, with millions of transactions per year.
+Accurately estimating a fair market price benefits both buyers—who risk overpaying—and sellers—who risk underpricing their vehicles.
+Traditional valuation relies on domain expertise and lookup tables, but these approaches fail to capture the complex, non-linear interactions among vehicle attributes such as brand, age, mileage, fuel type, and transmission.
+Machine learning offers a data-driven alternative that can model these interactions directly from historical listing data \cite{gegic2019car}.
+
+This project investigates machine learning methods for used car price prediction using the UK Used Car Dataset \cite{usedcardataset2021}, a publicly available collection of $\sim$108{,}000 listings scraped from a major UK automotive marketplace.
+The dataset provides a rich combination of numerical and categorical features, real-world missing values, and a heavily right-skewed continuous target (price in GBP), making it well-suited for exploring both modelling and preprocessing questions.
+
+\paragraph{Research Questions.}
+We address four specific research questions (RQs):
+\begin{enumerate}
+  \item[\textbf{RQ1}] To what extent can machine learning models accurately predict used car prices from available features?
+  \item[\textbf{RQ2}] How do models spanning the bias–variance spectrum (linear models, instance-based, tree-based, and neural networks) compare in predictive performance and generalisation?
+  \item[\textbf{RQ3}] How do different data preprocessing strategies—target transformation, missing value imputation, and feature scaling—affect model performance?
+  \item[\textbf{RQ4}] Which features contribute most significantly to price prediction, and how can their importance be interpreted?
+\end{enumerate}
+
+RQ1 establishes a baseline understanding of task difficulty. RQ2 provides a systematic model comparison linked to the bias–variance trade-off. RQ3 directly examines the downstream impact of preprocessing decisions, with particular relevance to distance-sensitive models such as KNN. RQ4 connects model behaviour to domain knowledge about the used car market.
+
+The remainder of the paper is structured as follows: Section~\ref{sec:literature} reviews related work; Section~\ref{sec:method} describes our dataset, preprocessing pipeline, models, and evaluation setup; Section~\ref{sec:results} presents experimental results; Section~\ref{sec:discussion} analyses findings; and Section~\ref{sec:conclusion} concludes.
