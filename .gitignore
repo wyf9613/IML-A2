@@ -23,21 +23,18 @@ Thumbs.db
 .idea/
 *.swp
 
-# LaTeX build artifacts
+# LaTeX build artifacts (intermediate files only)
 report/*.aux
 report/*.bbl
 report/*.blg
 report/*.log
 report/*.out
 report/*.synctex.gz
-report/*.pdf
 report/*.fls
 report/*.fdb_latexmk
 
-# Assignment PDFs and contract (not part of codebase)
-*.docx
+# Windows temp files
 ~$*
-COMP90049_*.pdf
 
 # Claude internal
 .claude/
