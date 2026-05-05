@@ -34,3 +34,10 @@ report/*.fdb_latexmk
 # Claude internal
 .claude/
 memory/
+
+# IDE local settings
+.vscode/
+
+# Large fitted model artifacts
+code/outputs/**/models/
+*.joblib

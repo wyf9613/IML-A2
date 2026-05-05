@@ -1,0 +1,6 @@
+model,scaling,alpha,n_neighbors,weights,max_depth,min_samples_leaf,n_estimators,hidden_layer_sizes,learning_rate_init
+ridge_regression,standard,0.1,,,,,,,
+knn_regression,standard,,10.0,distance,,,,,
+decision_tree,none,,,,,10.0,,,
+random_forest,none,,,,,1.0,200.0,,
+mlp_neural_network,standard,0.0001,,,,,,"(64, 32)",0.001
