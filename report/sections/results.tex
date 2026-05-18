@@ -1,12 +1,145 @@
-\section{Results}
+﻿\section{Results}
 \label{sec:results}
 
-% TODO (Zhenyu / Yiming): fill in after running experiments
-% Suggested structure:
-%   5.1 Overall Model Comparison (RQ1 + RQ2) — table with RMSE/MAE/R² for all 5 models
-%   5.2 Preprocessing Ablation (RQ3)         — table comparing scaling/imputation strategies
-%   5.3 Feature Importance (RQ4)             — bar chart (RF importance) + permutation importance
-%   5.4 Learning Curves                      — figure showing train/val RMSE vs training size
-%
-% Placeholder:
-\textit{[Results to be completed after model training and evaluation.]}
+This section reports the model evaluation and optimisation results using the shared train--development--test split generated in Notebook~02. Model selection is based on the development set only; the held-out test set remains reserved for final evaluation. Since all models predict \texttt{log\_price}, the reported price-scale metrics are computed after applying the inverse transformation to recover predicted prices in GBP.
+
+\subsection{Overall Model Comparison}
+\label{sec:overall_results}
+
+Table~\ref{tab:model_comparison} compares the five trained models on the development set. Random Forest achieves the best overall performance, with the lowest RMSE (GBP 1,866.08), the lowest MAE (GBP 1,217.09), and the highest price-scale $R^2$ (0.9541). This indicates that the ensemble model captures non-linear relationships between price and features such as transmission, year, engine size, mileage, and brand/model effects more effectively than the simpler baselines.
+
+KNN is the second-best model on the development set, with RMSE of GBP 1,987.53 and $R^2$ of 0.9479. However, its training performance is almost perfect (training $R^2 = 0.9995$), suggesting substantial overfitting. MLP also performs competitively but does not improve over Random Forest or KNN. Decision Tree and Ridge Regression provide useful baselines, but their higher RMSE values show the limitation of single-tree and linear assumptions for this prediction task.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Model} & \textbf{MAE} & \textbf{RMSE} & \textbf{$R^2$} \\
+\midrule
+Random Forest      & 1217.09 & 1866.08 & 0.9541 \\
+KNN Regression     & 1286.03 & 1987.53 & 0.9479 \\
+MLP Neural Network & 1412.49 & 2129.92 & 0.9402 \\
+Decision Tree      & 1433.38 & 2192.47 & 0.9366 \\
+Ridge Regression   & 1671.34 & 2444.19 & 0.9213 \\
+\bottomrule
+\end{tabular}
+\caption{Development set performance on the original price scale. Lower MAE/RMSE and higher $R^2$ indicate better performance.}
+\label{tab:model_comparison}
+\end{table}
+
+Table~\ref{tab:test_model_comparison} reports the final held-out test performance after model selection. The ranking remains consistent with the development results, confirming that the selected models generalise well beyond the tuning split. Random Forest again achieves the best performance, with a test RMSE of GBP 1,793.69 and a price-scale $R^2$ of 0.9570. KNN remains the second-best model, while MLP, Decision Tree, and Ridge Regression follow the same relative order as on the development set.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Model} & \textbf{MAE} & \textbf{RMSE} & \textbf{$R^2$} \\
+\midrule
+Random Forest      & 1205.22 & 1793.69 & 0.9570 \\
+KNN Regression     & 1274.86 & 1924.35 & 0.9505 \\
+MLP Neural Network & 1410.22 & 2058.39 & 0.9433 \\
+Decision Tree      & 1421.53 & 2130.05 & 0.9393 \\
+Ridge Regression   & 1671.39 & 2410.53 & 0.9223 \\
+\bottomrule
+\end{tabular}
+\caption{Held-out test set performance on the original price scale.}
+\label{tab:test_model_comparison}
+\end{table}
+
+\subsection{Hyperparameter Optimisation}
+\label{sec:hyperparameter_results}
+
+The best hyperparameter settings selected during tuning are shown in Table~\ref{tab:best_hyperparameters}. The selected Random Forest uses 200 trees and no fixed maximum depth, allowing the ensemble to model complex interactions while reducing variance through bagging. For KNN, distance weighting with $k=10$ performs best, meaning closer neighbours contribute more strongly to the predicted price. Ridge Regression selects a small regularisation strength ($\alpha=0.1$), while the MLP selects a two-layer architecture with 64 and 32 hidden units.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Model} & \textbf{Scaling} & \textbf{Best settings} \\
+\midrule
+Ridge Regression & Standard & $\alpha=0.1$ \\
+KNN Regression & Standard & $k=10$, distance weights \\
+Decision Tree & None & \texttt{min\_samples\_leaf}=10 \\
+Random Forest & None & 200 trees, \texttt{min\_samples\_leaf}=1 \\
+MLP Neural Network & Standard & hidden layers $(64,32)$, $\alpha=0.0001$ \\
+\bottomrule
+\end{tabular}
+\caption{Best hyperparameters selected for each model family.}
+\label{tab:best_hyperparameters}
+\end{table}
+
+To check whether the main model-comparison pattern is stable across different training folds, we also run a supplementary 3-fold cross-validation experiment on a 12{,}000-row sample from the training split. This experiment is used as a robustness check only; final model selection is still based on the development set and final reporting on the held-out test set.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Model} & \textbf{CV RMSE} & \textbf{CV $R^2$} \\
+\midrule
+Random Forest      & 2223.83 $\pm$ 77.55 & 0.9323 \\
+KNN Regression     & 2331.47 $\pm$ 39.54 & 0.9256 \\
+Ridge Regression   & 2480.74 $\pm$ 65.66 & 0.9158 \\
+Decision Tree      & 2870.28 $\pm$ 37.95 & 0.8872 \\
+MLP Neural Network & 4266.30 $\pm$ 2368.32 & 0.6779 \\
+\bottomrule
+\end{tabular}
+\caption{Supplementary 3-fold cross-validation results on a 12{,}000-row training subset. RMSE is reported on the original price scale as mean $\pm$ standard deviation.}
+\label{tab:cross_validation_results}
+\end{table}
+
+The cross-validation check supports the main conclusion for the strongest models: Random Forest and KNN remain the two best-performing methods. The lower-ranked models are less stable across folds, especially MLP, whose large RMSE standard deviation indicates sensitivity to the sampled training data.
+
+The optimisation results show a clear bias--variance pattern. Ridge Regression is stable but underfits because a linear function cannot fully represent the relationship between vehicle attributes and price. KNN has very low training error but a large train--development gap, showing high variance. Random Forest provides the best balance: its training error is lower than its development error, but the gap is much smaller than KNN, and its development and held-out test performance are the strongest overall.
+
+\subsection{Effect of Feature Scaling}
+\label{sec:scaling_results}
+
+Feature scaling has a strong effect on distance-based and linear models. Table~\ref{tab:scaling_results} shows that Ridge Regression performs poorly without scaling (RMSE GBP 7,597.09), because features such as mileage and tax operate on much larger numeric scales than variables such as engine size. Standardisation and min--max scaling both substantially improve Ridge, reducing RMSE to approximately GBP 2,440.
+
+KNN also benefits strongly from scaling. Without scaling, its development-tuning RMSE is GBP 6,889.90; after standardisation, this falls to GBP 2,097.92. Standard scaling outperforms min--max scaling for KNN in this experiment, likely because standardisation better preserves relative distances for skewed numerical variables.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{llrr}
+\toprule
+\textbf{Model} & \textbf{Scaling} & \textbf{RMSE} & \textbf{$R^2$} \\
+\midrule
+Ridge & None     & 7597.09 & 0.2393 \\
+Ridge & Standard & 2444.19 & 0.9213 \\
+Ridge & Min--max & 2442.51 & 0.9214 \\
+KNN   & None     & 6889.90 & 0.3682 \\
+KNN   & Standard & 2097.92 & 0.9414 \\
+KNN   & Min--max & 2415.64 & 0.9223 \\
+\bottomrule
+\end{tabular}
+\caption{Scaling comparison for Ridge and KNN. KNN values are computed on the tuning subset for runtime efficiency.}
+\label{tab:scaling_results}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{../code/outputs/model_training_comparison/figures/scaling_impact_rmse.png}
+\caption{Effect of scaling strategy on RMSE for Ridge Regression and KNN.}
+\label{fig:scaling_impact}
+\end{figure}
+
+\subsection{Feature Influence}
+\label{sec:feature_influence_results}
+
+The Random Forest feature importance ranking provides insight into which attributes drive the strongest predictive signal. The most important feature is \texttt{transmission\_Manual}, followed by \texttt{year}, \texttt{engineSize}, and \texttt{car\_age}. This ranking is consistent with used-car pricing intuition: newer cars, larger engines, and transmission type are strongly associated with market value. Mileage, MPG, and the luxury-brand indicator also contribute meaningful signal, although their individual importances are smaller than the top structural vehicle features.
+
+Ridge coefficients provide a complementary linear interpretation. The largest absolute coefficients are mostly model-specific indicators, such as \texttt{Caravelle}, \texttt{Up}, \texttt{KA}, \texttt{Aygo}, and \texttt{Supra}. Positive coefficients indicate models associated with higher log-price after controlling for other variables, while negative coefficients indicate lower-price models. Because these coefficients are model-based associations, they should be interpreted as predictive signals rather than causal effects.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{../code/outputs/model_training_comparison/figures/feature_influence.png}
+\caption{Top Ridge coefficients and Random Forest feature importances.}
+\label{fig:feature_influence}
+\end{figure}
+
+Overall, the evaluation supports the core research question: vehicle attributes can predict used-car prices with high accuracy. The best model, Random Forest, explains approximately 95.7\% of the held-out test-set variance on the price scale, while maintaining a lower error than all baseline and neural models.
