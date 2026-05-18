@@ -55,16 +55,17 @@ The best hyperparameter settings selected during tuning are shown in Table~\ref{
 
 \begin{table}[h]
 \centering
-\small
-\begin{tabular}{lll}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}p{0.33\linewidth}p{0.16\linewidth}p{0.31\linewidth}@{}}
 \toprule
 \textbf{Model} & \textbf{Scaling} & \textbf{Best settings} \\
 \midrule
 Ridge Regression & Standard & $\alpha=0.1$ \\
 KNN Regression & Standard & $k=10$, distance weights \\
-Decision Tree & None & \texttt{min\_samples\_leaf}=10 \\
-Random Forest & None & 200 trees, \texttt{min\_samples\_leaf}=1 \\
-MLP Neural Network & Standard & hidden layers $(64,32)$, $\alpha=0.0001$ \\
+Decision Tree & None & leaf size = 10 \\
+Random Forest & None & 200 trees, leaf size = 1 \\
+MLP Neural Network & Standard & layers $(64,32)$, $\alpha=10^{-4}$ \\
 \bottomrule
 \end{tabular}
 \caption{Best hyperparameters selected for each model family.}
