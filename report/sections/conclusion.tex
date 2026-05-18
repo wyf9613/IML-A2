@@ -1,8 +1,20 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-% TODO (Yiming): fill in after discussion is written
-% Must clearly state how each of the 4 RQs was answered.
-%
-% Placeholder:
-\textit{[Conclusion to be completed after all sections are written.]}
+\paragraph{RQ1.}
+Used car prices can be predicted very effectively using the available structured vehicle features.
+The best model, Random Forest, achieved a test RMSE of 1793.69, MAE of 1205.22, and $R^2$ of 0.9570, meaning it explained about 95.7\% of held-out price variance.
+
+\paragraph{RQ2.}
+Non-linear models performed better overall, with Random Forest giving the strongest result.
+The test ranking was Random Forest $>$ KNN $>$ MLP $>$ Decision Tree $>$ Ridge, and Random Forest reduced test RMSE by 25.6\% compared with Ridge, while KNN showed overfitting with train RMSE 201.33 and test RMSE 1924.35.
+
+\paragraph{RQ3.}
+Preprocessing had a major impact, especially for Ridge and KNN.
+Standard scaling reduced Ridge RMSE from 7597.09 to 2444.76 and KNN RMSE from 6889.90 to 2097.92, while the log-price transformation reduced skewness from 2.29 to $-$0.13.
+
+\paragraph{RQ4.}
+The most important predictors were mainly linked to depreciation, usage, vehicle class, and brand premium.
+Random Forest identified \texttt{transmission\_Manual}, \texttt{year}, \texttt{engineSize}, \texttt{car\_age}, \texttt{mpg}, \texttt{mileage}, and \texttt{is\_luxury} as the key features.
+
+Overall, Random Forest is the best choice for prediction accuracy in this experiment, while future improvement should focus on richer vehicle-level data, gradient boosting models, and stronger interpretability checks.

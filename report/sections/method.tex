@@ -11,7 +11,7 @@ Two additional ``unclean'' files (Ford Focus, Mercedes C-Class) are included as 
 
 \paragraph{Properties.}
 Table~\ref{tab:dataset_stats} summarises the key properties of the combined dataset after loading.
-The target variable \texttt{price} is continuous and exhibits severe right-skew (skewness $= 2.29$), with a median of £14{,}698 and values ranging from £450 to £159{,}999.
+The target variable \texttt{price} is continuous and exhibits severe right-skew (skewness $= 2.29$), with a median of \pounds{}14{,}698 and values ranging from \pounds{}450 to \pounds{}159{,}999.
 Two features—\texttt{tax} (13.1\% missing) and \texttt{mpg} (8.6\% missing)—contain substantial proportions of missing values arising from incomplete scraping.
 The dataset contains 9 brands after merging the two Ford and two Mercedes subsets, and 195 distinct car models.
 Linear separability between price strata is low given the continuous target, but a moderate negative correlation with \texttt{mileage} ($r = -0.47$) and positive correlation with \texttt{year} ($r = 0.52$) provide a clear signal for regression.
@@ -19,12 +19,12 @@ Linear separability between price strata is low given the continuous target, but
 \begin{table}[h]
 \centering
 \small
-\begin{tabular}{lrr}
+\begin{tabular}{@{}p{0.42\linewidth}p{0.50\linewidth}@{}}
 \toprule
 \textbf{Property} & \textbf{Value} \\
 \midrule
 Total listings (raw)          & 108{,}540 \\
-Listings after cleaning       & $\sim$100{,}000 \\
+Listings after cleaning       & 80{,}812 \\
 Number of brands              & 9 \\
 Number of models              & 195 \\
 Numerical features            & 6 (\texttt{year}, \texttt{price}, \texttt{mileage}, \texttt{tax}, \texttt{mpg}, \texttt{engineSize}) \\
@@ -47,15 +47,15 @@ All preprocessing is implemented in Python using \texttt{pandas} and \texttt{sci
 The pipeline proceeds through five stages.
 
 \paragraph{Stage 1: Schema Standardisation.}
-Each per-brand CSV is loaded and filtered to the nine standard columns, discarding any extraneous columns (e.g.\ the \texttt{tax(£)} column present in the Hyundai file due to a scraping inconsistency).
+Each per-brand CSV is loaded and filtered to the nine standard columns, discarding any extraneous columns (e.g.\ the \texttt{tax(GBP)} column present in the Hyundai file due to a scraping inconsistency).
 All files are concatenated into a single DataFrame and a \texttt{brand} column is appended.
 
 \paragraph{Stage 2: Validity Filtering.}
 Four categories of physically implausible values are identified and treated as missing rather than deleted, preserving sample size:
 \begin{itemize}
   \item \texttt{engineSize} $= 0$: no internal combustion vehicle has zero displacement; likely a data-entry error.
-  \item \texttt{mileage} $= 0$: used car listings with zero recorded mileage are implausible placeholders.
-  \item \texttt{price} $< £100$: below any realistic transaction threshold.
+  \item \texttt{mileage} $= 0$: used car listings with zero recorded mileage are treated as implausible data-entry defaults.
+  \item \texttt{price} $< \pounds{}100$: below any realistic transaction threshold.
   \item \texttt{year} $\notin [1990, 2023]$: values of 1970 and 2060 represent obvious entry errors.
 \end{itemize}
 
@@ -66,7 +66,7 @@ Exact duplicate rows (identical across all nine columns) are removed.
 We apply the IQR method with a conservative factor of $3\times$ to \texttt{price}, \texttt{mileage}, and \texttt{tax}.
 A row is removed if its value falls below $Q_1 - 3 \cdot \mathrm{IQR}$ or above $Q_3 + 3 \cdot \mathrm{IQR}$.
 This factor retains genuine high-value luxury cars and high-mileage fleet vehicles while discarding clear data errors.
-The resulting price bounds are approximately £[1{,}229, 46{,}440].
+The resulting price bounds are approximately \pounds{}[1{,}229, 46{,}440].
 
 \paragraph{Stage 5: Category Consolidation.}
 Five fuel type labels and four transmission labels in the raw data include rare entries (e.g.\ \textit{Other}, \textit{Electric} for a small fraction of the dataset).
@@ -81,19 +81,22 @@ Group-median imputation is preferred over global median because feature distribu
 
 \begin{table}[h]
 \centering
+\begingroup
+\setlength{\tabcolsep}{3pt}
 \small
-\begin{tabular}{llr}
+\begin{tabular}{@{}p{0.24\linewidth}p{0.48\linewidth}p{0.18\linewidth}@{}}
 \toprule
 \textbf{Feature} & \textbf{Imputation Strategy} & \textbf{Missing \%} \\
 \midrule
-\texttt{tax}          & Median within (\texttt{year}, engine bin)    & $\sim$13\% \\
-\texttt{mpg}          & Median within (\texttt{fuelType}, engine bin) & $\sim$9\%  \\
-\texttt{engineSize}   & Median within (\texttt{brand}, \texttt{fuelType}) & $<$1\%  \\
-\texttt{mileage}      & Median within (\texttt{year}, \texttt{brand})     & $<$1\%  \\
-\texttt{fuelType}     & Mode within \texttt{brand}                    & $<$1\%  \\
-\texttt{transmission} & Mode within \texttt{brand}                    & $<$1\%  \\
+\texttt{tax}          & Median by year and engine bin       & $\sim$13\% \\
+\texttt{mpg}          & Median by fuel type and engine bin  & $\sim$9\%  \\
+\texttt{engineSize}   & Median by brand and fuel type       & $<$1\%  \\
+\texttt{mileage}      & Median by year and brand            & $<$1\%  \\
+\texttt{fuelType}     & Brand-level mode                    & $<$1\%  \\
+\texttt{transmission} & Brand-level mode                    & $<$1\%  \\
 \bottomrule
 \end{tabular}
+\endgroup
 \caption{Missing value rates (post-cleaning) and imputation strategies. Engine bin refers to a coarse discretisation of \texttt{engineSize} into five intervals.}
 \label{tab:missing}
 \end{table}
@@ -113,29 +116,33 @@ Beyond the nine raw features, we construct four derived features motivated by do
 \subsection{Categorical Encoding}
 \label{sec:encoding}
 
-We apply three encoding strategies tailored to the cardinality and ordinality of each categorical feature:
+Notebook~01 creates several encoded helper columns for exploratory analysis.
+For model training in Notebook~02, those full-data encodings are excluded and categorical features are encoded inside the training pipeline to keep preprocessing consistent across train, development, and test splits.
+We apply the following encoding strategy:
 
 \begin{itemize}
-  \item \textbf{Label encoding} for \texttt{transmission} (3 levels): Manual $\to 0$, Semi-Auto $\to 1$, Automatic $\to 2$. The ordering reflects increasing automation level, making this a reasonable ordinal treatment.
-  \item \textbf{One-hot encoding (OHE)} for \texttt{fuelType} (4 levels): avoids imposing a false ordinal relationship. This produces four binary indicator columns (\texttt{fuel\_Petrol}, \texttt{fuel\_Diesel}, \texttt{fuel\_Hybrid}, \texttt{fuel\_Electric}).
-  \item \textbf{Target encoding} for \texttt{brand} and \texttt{model}: each category is replaced by the mean \texttt{log\_price} of that group. Target encoding is preferred over OHE for these high-cardinality features (9 brands, 195 models) because it produces a compact, informative representation without the curse of dimensionality. In the modelling notebooks, target encoding statistics are computed on the training fold only to prevent label leakage.
+  \item \textbf{Median imputation} is applied to numerical features inside each modelling pipeline.
+  \item \textbf{Most-frequent imputation} is applied to categorical features inside each modelling pipeline.
+  \item \textbf{One-hot encoding (OHE)} is applied to all categorical inputs: \texttt{brand}, \texttt{model}, \texttt{transmission}, and \texttt{fuelType}. This avoids imposing artificial ordinal relationships on manufacturer, model, fuel, or gearbox labels and allows unseen categories to be ignored safely at prediction time.
 \end{itemize}
 
 \subsection{Feature Scaling}
 \label{sec:scaling}
 
-The final modelling feature set comprises 14 features (Table~\ref{tab:features}).
+The final modelling feature set comprises the raw vehicle attributes plus engineered age, usage, and luxury-brand indicators (Table~\ref{tab:features}).
 We prepare two scaled versions for experiments related to RQ3:
 \begin{itemize}
   \item \textbf{StandardScaler}: zero mean, unit variance. Standard choice for gradient-based models and regularised linear models.
   \item \textbf{MinMaxScaler}: maps each feature to $[0, 1]$. Used to study the effect of bounded vs.\ standardised inputs on KNN and neural network performance.
 \end{itemize}
-Tree-based models (Random Forest) are scale-invariant and always trained on unscaled features.
+Tree-based models (Decision Tree and Random Forest) are scale-invariant and are trained on unscaled numerical features.
 
 \begin{table}[h]
 \centering
-\small
-\begin{tabular}{lll}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\scriptsize
+\begin{tabular}{@{}p{0.40\linewidth}p{0.18\linewidth}p{0.34\linewidth}@{}}
 \toprule
 \textbf{Feature} & \textbf{Type} & \textbf{Source} \\
 \midrule
@@ -145,19 +152,17 @@ Tree-based models (Random Forest) are scale-invariant and always trained on unsc
 \texttt{tax}               & Numerical  & Raw \\
 \texttt{mpg}               & Numerical  & Raw \\
 \texttt{engineSize}        & Numerical  & Raw \\
-\texttt{transmission\_enc} & Ordinal    & Label-encoded \\
 \texttt{is\_luxury}        & Binary     & Engineered \\
-\texttt{brand\_mean\_price}& Numerical  & Target-encoded \\
-\texttt{model\_mean\_price}& Numerical  & Target-encoded \\
-\texttt{fuel\_Diesel}      & Binary     & OHE \\
-\texttt{fuel\_Electric}    & Binary     & OHE \\
-\texttt{fuel\_Hybrid}      & Binary     & OHE \\
-\texttt{fuel\_Petrol}      & Binary     & OHE \\
+\texttt{brand}             & Categorical & Raw, one-hot encoded in pipeline \\
+\texttt{model}             & Categorical & Raw, one-hot encoded in pipeline \\
+\texttt{transmission}      & Categorical & Raw, one-hot encoded in pipeline \\
+\texttt{fuelType}          & Categorical & Raw, one-hot encoded in pipeline \\
 \midrule
 \textbf{Target}: \texttt{log\_price} & Numerical & Engineered \\
 \bottomrule
 \end{tabular}
-\caption{Final modelling feature set (14 features) used as input to all models.}
+\endgroup
+\caption{Final modelling feature set before categorical expansion. One-hot encoding is fitted inside each model pipeline.}
 \label{tab:features}
 \end{table}
 
@@ -165,25 +170,24 @@ Tree-based models (Random Forest) are scale-invariant and always trained on unsc
 \label{sec:validation}
 
 To enable fair comparison across all models and preprocessing variants, we adopt a unified validation protocol.
-The dataset is split into a \textbf{training set} (80\%, stratified by brand) and a held-out \textbf{test set} (20\%) using a fixed random seed (42).
+The cleaned dataset is split into \textbf{training} (60\%), \textbf{development} (20\%), and held-out \textbf{test} (20\%) sets using a fixed random seed (49).
 The test set is used only for final evaluation and is never seen during model selection or hyperparameter tuning.
 
-Hyperparameter tuning is conducted using \textbf{5-fold cross-validation} on the training set.
-The same folds are used for all models to ensure that observed performance differences are not attributable to fold assignment.
-Target encoding statistics (for \texttt{brand} and \texttt{model}) are recomputed within each fold to prevent label leakage.
+Hyperparameter tuning is conducted on a fixed tuning subset from the training and development sets for runtime efficiency, while final development and test evaluation use the full corresponding splits.
+We additionally run a supplementary 3-fold cross-validation check on a 12{,}000-row training subset to assess whether the main model ranking is stable across folds.
+All models use the same splits and the same pipeline structure for fair comparison.
 
 \subsection{Models and Hyperparameters}
 \label{sec:models}
 
-% TODO (Xinkai / Zhenyu): fill in model descriptions and hyperparameter ranges
 We evaluate five models covering the bias--variance spectrum from high-bias/low-variance to low-bias/high-variance:
 
 \begin{enumerate}
-  \item \textbf{Ridge Regression} — linear model with L2 regularisation; $\alpha \in \{0.01, 0.1, 1, 10, 100\}$.
-  \item \textbf{K-Nearest Neighbours (KNN)} — instance-based; $k \in \{3, 5, 10, 20, 50\}$; distance weighting.
-  \item \textbf{Support Vector Regression (SVR)} — kernel SVM; RBF kernel; $C \in \{0.1, 1, 10\}$, $\varepsilon \in \{0.01, 0.1\}$.
-  \item \textbf{Random Forest} — ensemble of 100--500 decision trees; \texttt{max\_depth} $\in \{10, 20, \texttt{None}\}$; \texttt{min\_samples\_leaf} $\in \{1, 5\}$.
-  \item \textbf{Multi-Layer Perceptron (MLP)} — two hidden layers; width $\in \{64, 128\}$; dropout $\in \{0.0, 0.2\}$; Adam optimiser; early stopping.
+  \item \textbf{Ridge Regression}: linear model with L2 regularisation; $\alpha \in \{0.1, 1, 10, 100\}$, best $\alpha=0.1$.
+  \item \textbf{K-Nearest Neighbours (KNN)}: instance-based distance model; $k \in \{5, 10, 20\}$ with uniform or distance weighting, best $k=10$ with distance weighting.
+  \item \textbf{Decision Tree}: single non-linear tree model; maximum depth $\in \{8, 16, \texttt{None}\}$ and minimum leaf samples $\in \{1, 10, 50\}$, best no depth limit and leaf size 10.
+  \item \textbf{Random Forest}: bagged tree ensemble; trees $\in \{100, 200\}$, maximum depth $\in \{16, \texttt{None}\}$, and minimum leaf samples $\in \{1, 10\}$, best 200 trees with no depth limit and leaf size 1.
+  \item \textbf{Multi-Layer Perceptron (MLP)}: feed-forward neural network with early stopping; hidden layers $\in \{(64), (128), (64,32)\}$, $\alpha \in \{10^{-4}, 10^{-3}\}$, and learning rate $=0.001$, best $(64,32)$ with $\alpha=10^{-4}$.
 \end{enumerate}
 
 \subsection{Evaluation Metrics}
@@ -193,7 +197,7 @@ All models are evaluated on the same three metrics, computed on original-scale p
 \begin{itemize}
   \item \textbf{RMSE} (Root Mean Squared Error): penalises large errors more heavily; primary metric.
   \item \textbf{MAE} (Mean Absolute Error): interpretable as average absolute price deviation in GBP.
-  \item \textbf{R²} (Coefficient of Determination): proportion of price variance explained by the model.
+  \item \textbf{$R^2$} (Coefficient of Determination): proportion of price variance explained by the model.
 \end{itemize}
 
 For preprocessing comparisons (RQ3), we additionally report the cross-validation RMSE and its standard deviation to assess stability across folds.

@@ -1,13 +1,68 @@
 \section{Discussion}
 \label{sec:discussion}
 
-% TODO (Yiming): fill in after results are available
-% Suggested structure:
-%   6.1 Model behaviour analysis (connect results to bias-variance trade-off)
-%   6.2 Error analysis (which car types are predicted poorly and why?)
-%   6.3 Preprocessing impact analysis (RQ3 — why does log transform help linear but not RF?)
-%   6.4 Feature importance interpretation (RQ4 — connect to domain knowledge)
-%   6.5 Limitations
-%
-% Placeholder:
-\textit{[Discussion to be completed after results analysis.]}
+\subsection{Model Behaviour Analysis}
+
+The test results show that Random Forest was the strongest model, with the lowest test RMSE of 1793.69 and the highest test $R^2$ of 0.9570.
+This is likely because used car prices depend on non-linear relationships and feature interactions between brand, model, age, mileage, engine size, and other variables.
+Random Forest can capture these patterns while using bagging to reduce the variance of individual trees, giving a better balance between flexibility and generalisation.
+
+KNN also performed well, with a test RMSE of 1924.35 and test $R^2$ of 0.9505, but it showed a clear overfitting risk.
+Its train RMSE was only 201.33, which is much lower than its test RMSE, suggesting that the model fitted local training samples too closely.
+Ridge Regression was the weakest model, with a test RMSE of 2410.53 and train RMSE of 2410.12, indicating underfitting caused by its limited linear structure.
+MLP learned non-linear patterns but did not outperform Random Forest, likely because tree-based models are better suited to this tabular dataset.
+The single Decision Tree was also weaker because it had higher variance than the ensemble model.
+
+\subsection{Error Analysis}
+
+Larger prediction errors are more likely for high-priced luxury cars, rare models, and vehicles with extremely low or high mileage or engine size.
+These cases are less common in the dataset, so the model has fewer similar examples to learn from.
+Their prices may also depend more strongly on individual condition, special options, or market demand.
+
+Rare models are especially difficult after one-hot encoding because each category may only have a small number of samples.
+This makes it hard for the model to learn a stable pricing pattern for that specific model.
+In addition, the outlier removal process helped stabilise modelling in the mainstream price range, but it may also limit generalisation to very high-end vehicles.
+
+Some remaining error is also caused by missing information.
+The dataset does not include variables such as location, trim level, accident history, maintenance condition, seller type, or listing time.
+Listing price may also differ from the final sale price due to negotiation.
+Therefore, not all prediction error should be treated as a model weakness.
+
+\subsection{Preprocessing Impact}
+
+Scaling had a strong effect on Ridge Regression and KNN because both models are sensitive to feature scale.
+Without scaling, large-range variables such as mileage and tax can dominate the regularisation process or distance calculation, which leads to poor performance.
+
+For Ridge Regression, the RMSE dropped from 7597.09 without scaling to 2444.76 with StandardScaler.
+MinMaxScaler gave a very similar result, with an RMSE of 2442.11.
+This shows that scaling is essential for regularised linear models in this dataset.
+
+For KNN, the effect was even clearer.
+The RMSE decreased from 6889.90 without scaling to 2097.92 with StandardScaler, while MinMaxScaler achieved 2415.64.
+Since KNN defines similarity through distances, scaling is necessary to make the distance between cars meaningful.
+The KNN scaling comparison was conducted on a tuning subset for runtime efficiency, so these values are mainly used to compare preprocessing choices.
+Overall, preprocessing directly affected whether these models could learn useful patterns.
+
+\subsection{Feature Importance Interpretation}
+
+The Random Forest feature importance results show that the main predictors were \texttt{transmission\_Manual}, \texttt{year}, \texttt{engineSize}, \texttt{car\_age}, \texttt{mpg}, \texttt{mileage}, and \texttt{is\_luxury}, with importance scores of 0.3347, 0.2143, 0.1653, 0.0910, 0.0330, 0.0276, and 0.0273 respectively.
+These features match common used-car pricing logic because they reflect depreciation, usage level, vehicle class, and brand premium.
+
+\texttt{year} and \texttt{car\_age} represent depreciation, while \texttt{mileage} reflects how much the vehicle has been used.
+Engine size and transmission are linked to vehicle specification and market positioning, and the \texttt{is\_luxury} indicator captures the price premium associated with luxury brands.
+Ridge coefficients also showed that specific model identity has a strong predictive association with price, with positive coefficients for models such as Caravelle and negative coefficients for smaller economy models such as Up, KA, and Aygo.
+These results should be interpreted as predictive associations rather than causal effects.
+
+\subsection{Limitations and Future Improvements}
+
+This study has several limitations.
+First, the target variable is listing price rather than final transaction price, so it may include seller expectations, negotiation space, and pricing strategy.
+Second, the dataset lacks important variables such as location, vehicle condition, accident history, trim level, seller type, and listing date.
+These missing factors may explain part of the remaining prediction error.
+
+Third, the data comes from the UK used-car market, so the findings should not be directly generalised to other countries or regions.
+Market conditions, brand preferences, tax rules, and resale patterns may differ across locations.
+There were also modelling limitations: cross-validation was only used as a robustness check on a 12{,}000-row subset due to runtime and course-scope constraints.
+
+Future work could add more detailed vehicle and market information, then compare Random Forest with stronger tabular models such as Gradient Boosting, XGBoost, or LightGBM.
+SHAP values or permutation importance could also be used to check whether the main predictors remain stable across model settings.
