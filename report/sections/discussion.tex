@@ -4,8 +4,9 @@
 \subsection{Model Behaviour Analysis}
 
 The test results show that Random Forest was the strongest model, with the lowest test RMSE of 1793.69 and the highest test $R^2$ of 0.9570.
-This is likely because used car prices depend on non-linear relationships and feature interactions between brand, model, age, mileage, engine size, and other variables.
-Random Forest can capture these patterns while using bagging to reduce the variance of individual trees, giving a better balance between flexibility and generalisation.
+This may be because used car prices are affected by non-linear relationships and interactions between features such as brand, model, age, mileage, engine size, and other variables.
+Random Forest is able to capture these patterns, while its use of bagging reduces the variance of individual trees.
+As a result, it provides a good balance between model flexibility and generalisation.
 
 KNN also performed well, with a test RMSE of 1924.35 and test $R^2$ of 0.9505, but it showed a clear overfitting risk.
 Its train RMSE was only 201.33, which is much lower than its test RMSE, suggesting that the model fitted local training samples too closely.
@@ -61,8 +62,9 @@ Second, the dataset lacks important variables such as location, vehicle conditio
 These missing factors may explain part of the remaining prediction error.
 
 Third, the data comes from the UK used-car market, so the findings should not be directly generalised to other countries or regions.
-Market conditions, brand preferences, tax rules, and resale patterns may differ across locations.
-There were also modelling limitations: cross-validation was only used as a robustness check on a 12{,}000-row subset due to runtime and course-scope constraints.
+Market conditions, brand preferences, tax rules, and resale patterns may vary across different locations.
+The modelling process also had some limitations.
+Due to runtime and course-scope constraints, cross-validation was only used as a robustness check on a 12{,}000-row subset.
 
-Future work could add more detailed vehicle and market information, then compare Random Forest with stronger tabular models such as Gradient Boosting, XGBoost, or LightGBM.
-SHAP values or permutation importance could also be used to check whether the main predictors remain stable across model settings.
+Future work could add more detailed vehicle and market information, followed by a comparison between Random Forest and other strong tabular models such as Gradient Boosting, XGBoost, or LightGBM.
+SHAP values or permutation importance could also be applied to assess whether the main predictors remain stable across different model settings.

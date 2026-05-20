@@ -1,4 +1,4 @@
-﻿\section{Results}
+\section{Results}
 \label{sec:results}
 
 This section reports the model evaluation and optimisation results using the shared train--development--test split generated in Notebook~02. Model selection is based on the development set only; the held-out test set remains reserved for final evaluation. Since all models predict \texttt{log\_price}, the reported price-scale metrics are computed after applying the inverse transformation to recover predicted prices in GBP.
@@ -114,8 +114,8 @@ KNN also benefits strongly from scaling. Without scaling, its development-tuning
 \textbf{Model} & \textbf{Scaling} & \textbf{RMSE} & \textbf{$R^2$} \\
 \midrule
 Ridge & None     & 7597.09 & 0.2393 \\
-Ridge & Standard & 2444.19 & 0.9213 \\
-Ridge & Min--max & 2442.51 & 0.9214 \\
+Ridge & Standard & 2444.76 & 0.9212 \\
+Ridge & Min--max & 2442.11 & 0.9214 \\
 KNN   & None     & 6889.90 & 0.3682 \\
 KNN   & Standard & 2097.92 & 0.9414 \\
 KNN   & Min--max & 2415.64 & 0.9223 \\
@@ -146,4 +146,4 @@ Ridge coefficients provide a complementary linear interpretation. The largest ab
 \label{fig:feature_influence}
 \end{figure}
 
-Overall, the evaluation supports the core research question: vehicle attributes can predict used-car prices with high accuracy. The best model, Random Forest, explains approximately 95.7\% of the held-out test-set variance on the price scale, while maintaining a lower error than all baseline and neural models.
+Overall, the evaluation supports the main research question, showing that vehicle attributes can predict used-car prices with high accuracy. The best-performing model was Random Forest, which explained about 95.7\% of the variance in the held-out test set on the original price scale. It also achieved a lower prediction error than all baseline and neural network models.

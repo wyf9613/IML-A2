@@ -6,13 +6,14 @@
 
 We use the \textbf{UK Used Car Dataset} \cite{usedcardataset2021}, a publicly available collection of used vehicle listings scraped from a major UK online automotive marketplace.
 The raw dataset comprises 108{,}540 listings distributed across 11 CSV files, one per manufacturer: Audi, BMW, Ford (two subsets), Mercedes (two subsets), Hyundai, Skoda, Toyota, Vauxhall, and Volkswagen.
-All files share a common nine-column schema: \texttt{model}, \texttt{year}, \texttt{price} (GBP), \texttt{transmission}, \texttt{mileage}, \texttt{fuelType}, \texttt{tax} (annual road tax in GBP), \texttt{mpg} (miles per gallon), and \texttt{engineSize} (litres).
-Two additional ``unclean'' files (Ford Focus, Mercedes C-Class) are included as raw scrape outputs with malformed price strings and split mileage columns; these are used to illustrate real-world data quality challenges but are not included in the main training corpus.
+All files use the same nine-column structure: \texttt{model}, \texttt{year}, \texttt{price} in GBP, \texttt{transmission}, \texttt{mileage}, \texttt{fuelType}, \texttt{tax} as annual road tax in GBP, \texttt{mpg} as miles per gallon, and \texttt{engineSize} in litres.
+Two extra ``unclean'' files, Ford Focus and Mercedes C-Class, are also included as raw scraped data.
+These files contain issues such as malformed price strings and split mileage columns, so they are used to show real-world data quality problems and are not included in the main training dataset.
 
 \paragraph{Properties.}
 Table~\ref{tab:dataset_stats} summarises the key properties of the combined dataset after loading.
 The target variable \texttt{price} is continuous and exhibits severe right-skew (skewness $= 2.29$), with a median of \pounds{}14{,}698 and values ranging from \pounds{}450 to \pounds{}159{,}999.
-Two features—\texttt{tax} (13.1\% missing) and \texttt{mpg} (8.6\% missing)—contain substantial proportions of missing values arising from incomplete scraping.
+Two features--\texttt{tax} (13.1\% missing) and \texttt{mpg} (8.6\% missing)--contain substantial proportions of missing values arising from incomplete scraping.
 The dataset contains 9 brands after merging the two Ford and two Mercedes subsets, and 195 distinct car models.
 Linear separability between price strata is low given the continuous target, but a moderate negative correlation with \texttt{mileage} ($r = -0.47$) and positive correlation with \texttt{year} ($r = 0.52$) provide a clear signal for regression.
 

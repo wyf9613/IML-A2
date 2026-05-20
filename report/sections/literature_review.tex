@@ -3,8 +3,8 @@
 
 Price prediction for used vehicles has attracted considerable attention in the machine learning literature.
 \citet{pudaruth2014predicting} provided an early comparative study applying Naive Bayes, Decision Trees, and Neural Networks to a small Mauritian dataset, finding that tree-based methods outperform Naive Bayes due to the non-Gaussian nature of automotive features.
-\citet{gegic2019car} extended this to a larger European dataset using gradient-boosted trees and Support Vector Regression, demonstrating that ensemble methods consistently outperform linear baselines, with mileage and vehicle age emerging as the two most predictive features—a finding we replicate and contextualise in Section~\ref{sec:results}.
-\citet{shinde2018used} proposed a KNN-based system for used car valuation, showing that KNN achieves competitive accuracy on datasets with strong local price clusters (e.g.\ vehicles of the same model and year), but degrades significantly without feature scaling—motivating our investigation of preprocessing effects in RQ3.
+\citet{gegic2019car} extended this to a larger European dataset using gradient-boosted trees and Support Vector Regression, demonstrating that ensemble methods consistently outperform linear baselines, with mileage and vehicle age emerging as the two most predictive features--a finding we replicate and contextualise in Section~\ref{sec:results}.
+\citet{shinde2018used} proposed a KNN-based system for used car valuation, showing that KNN achieves competitive accuracy on datasets with strong local price clusters (e.g.\ vehicles of the same model and year), but degrades significantly without feature scaling--motivating our investigation of preprocessing effects in RQ3.
 \citet{listiani2009support} applied SVR to German car listings, finding that RBF kernels outperform linear kernels, and that log-transforming the price target substantially improved RMSE.
 
 Neural network approaches have gained traction with the availability of larger datasets.
